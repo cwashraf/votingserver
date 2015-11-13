@@ -1,0 +1,71 @@
+* TODO What You Will Need
+** Node, ES6, React, Webpack, and Babel
+** TODO For good introduction we need to take a look at [[http://survivejs.com/][SurviveJS]]
+* The App 
+** We'll be developing an application for organizing live votes for parties, conferences, meetings, and other gatherings of people.
+** For example, here's how a vote on the best Danny Boyle film
+could go:
+
+The app puts entries against each other in pairs, until a winner is found. 
+
+** The app will have two separate user interfaces: The voting UI
+can be used on a mobile device, or anything else that has a
+web browser. The results UI is designed to be beamed on a
+projector or some other large screen. It'll show the results
+of the running vote in real time.
+
+* The Architecture 
+** The system will technically consist of two applications:
+There's a browser app we'll make with React that provides
+both the user interfaces, and a server app we'll make for
+Node that handles the voting logic. Communication between the
+two will be done using WebSockets.
+** We're going to use Redux to organize the application code
+both on the client and on the server. For holding the state
+we'll use Immutable data structures.
+
+** Even though there'll be a lot of similarity between the
+client and server - both will use Redux, for example - this
+isn't really a universal/isomorphic application and the two
+won't actually share any code. 
+
+* The Server Application 
+** Designing The Application State Tree 
+
+** Project Setup 
+** Getting Comfortable With Immutable 
+** Writing The Application Logic With Pure Functions 
+*** Loading Entries 
+*** Starting The Vote 
+*** Voting 
+*** Moving to The Next Pair 
+*** Ending The Vote 
+
+** Introducing Actions and Reducers 
+** A Taste of Reducer Composition 
+** Introducing The Redux Store 
+** Setting Up a Socket.io Server 
+** Broadcasting State from A Redux Listener 
+** Receiving Remote Redux Actions 
+
+* The Client Application 
+** Client Project Setup 
+*** Unit Testing support 
+** React and react-hot-loader 
+** Writing The UI for The Voting Screen 
+** Immutable Data And Pure Rendering 
+** Writing The UI for The Results Screen And Handling Routing 
+** Introducing A Client-Side Redux Store 
+** Getting Data In from Redux to React 
+** Setting Up The Socket.io Client 
+** Receiving Actions From The Server 
+** Dispatching Actions From React Components 
+** Sending Actions To The Server Using Redux Middleware 
+* Exercises 
+** 1. Invalid Vote Prevention 
+** 2. Improved Vote State Reset 
+** 3. Duplicate Vote Prevention 
+** 4. Restarting The Vote 
+** 5. Indicating Socket Connection State 
+** Bonus Challenge: Going Peer to Peer 
+ 
