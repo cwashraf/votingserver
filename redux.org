@@ -1,5 +1,11 @@
 * TODO What You Will Need
-** Node, ES6, React, Webpack, and Babel
+** http://teropa.info/blog/2015/09/10/full-stack-redux-tutorial.html
+** Install following packages 
+*** TODO Node
+*** ES6
+*** React
+*** Webpack
+*** and Babel
 ** TODO For good introduction we need to take a look at [[http://survivejs.com/][SurviveJS]]
 * The App 
 ** We'll be developing an application for organizing live votes for parties, conferences, meetings, and other gatherings of people.
@@ -30,9 +36,23 @@ isn't really a universal/isomorphic application and the two
 won't actually share any code. 
 
 * The Server Application 
-** Designing The Application State Tree 
+** Description
+***  We're going to write the Node application first and the React application after that. This will let us concentrate on the core logic before we start thinking about the UI.
 
-** Project Setup 
+*** As we create the server app, we'll get acquainted with Redux and Immutable, and will see how an application built with them holds together. Redux is most often associated with React applications, but it really isn't limited to that use case. Part of what we're going to learn is how useful Redux can be in other contexts as well!
+** Designing The Application State Tree 
+*** Designing a Redux app often begins by thinking about the application state data structure. This is what describes what's going on in your application at any given time.
+*** All kinds of frameworks and architectures have state. 
+**** In Ember apps and Backbone apps, state is in Models. 
+**** In Angular apps, state is often in Factories and Services. 
+**** In most Flux implementations, it is in Stores. 
+**** How does Redux differ from these
+***** The main difference is that in Redux.
+***** the application state is all stored in one single tree structure. In other words, everything there is to know
+about your application's state is stored in one data structure formed out
+of maps and arrays.
+
+** Project Setup
 ** Getting Comfortable With Immutable 
 ** Writing The Application Logic With Pure Functions 
 *** Loading Entries 
