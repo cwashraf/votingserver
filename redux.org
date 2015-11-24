@@ -628,32 +628,60 @@ npm run test
 
 #+end_example
 ***** Array to Immutable List
+      CLOCK: [2015-11-24 মঙ্গল 15:17]--[2015-11-24 মঙ্গল 16:20] =>  1:03
+
 #+BEGIN_SRC sh :results verbatim
 npm run test
 #+END_SRC 
 
 #+RESULTS:
-|              |                     |             |                                          |           |                       |             |       |
-| >            | voting-server@1.0.0 | test        | /usr/local/src/jstutorials/voting-server |           |                       |             |       |
-| >            | mocha               | --compilers | js:babel-core/register                   | --require | ./test/test_helper.js | --recursive |       |
-|              |                     |             |                                          |           |                       |             |       |
-|              |                     |             |                                          |           |                       |             |       |
-|              |                     |             |                                          |           |                       |             |       |
-| application  | logic               |             |                                          |           |                       |             |       |
-| setEntries   |                     |             |                                          |           |                       |             |       |
-|              | ✓                   | adds        | the                                      | entries   | to                    | the         | state |
-|              |                     |             |                                          |           |                       |             |       |
-| immutability |                     |             |                                          |           |                       |             |       |
-| a            | number              |             |                                          |           |                       |             |       |
-|              | ✓                   | is          | immutable                                |           |                       |             |       |
-| A            | List                |             |                                          |           |                       |             |       |
-|              | ✓                   | is          | immutable                                |           |                       |             |       |
-| a            | tree                |             |                                          |           |                       |             |       |
-|              | ✓                   | is          | immatable                                |           |                       |             |       |
-|              |                     |             |                                          |           |                       |             |       |
-|              |                     |             |                                          |           |                       |             |       |
-| 4            | passing             | (36ms)      |                                          |           |                       |             |       |
-|              |                     |             |                                          |           |                       |             |       |
+#+begin_example
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  application logic
+    setEntries
+      ✓ adds the entries to the state
+
+  immutability
+    a number
+      ✓ is immutable
+    A List
+      ✓ is immutable
+    a tree
+      ✓ is immatable
+
+
+  4 passing (36ms)
+
+#+end_example
+
+#+BEGIN_SRC patch :tangle src/core.js
+@@ -1,4 +1,4 @@
+-
++import {List} from 'immutable';
+ export function setEntries(state,entries){
+-  return state.set('entries', entries);
++  return state.set('entries', List(entries));
+ }
+#+END_SRC
+
+#+BEGIN_SRC test/core_spec.js
+@@ -6,9 +6,9 @@ import {setEntries} from '../src/core';
+ describe('application logic', () => {
+   describe('setEntries', () => {
+     it('adds the entries to the state', ()=> {
+       const state = Map();
+-      const entries = List.of('Trainspotting', '28 Days Later');
++      const entries = ['Trainspotting', '28 Days Later'];
+       const nextState = setEntries(state, entries);
+       expect(nextState).to.equal(Map({
+         entries: List.of('Trainspotting', '28 Days Later')
+       }));
+#+END_SRC
 
 *** Starting The Vote 
 *** Voting 
