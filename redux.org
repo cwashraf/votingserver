@@ -685,7 +685,7 @@ npm run test
 
 *** Starting The Vote Second state
     CLOCK: [2015-11-24 মঙ্গল 16:12]--[2015-11-24 মঙ্গল 16:42] =>  0:30
- 
+    
     We can begin the voting by calling a function called next on a state that
 already has entries set. That means, going from the first to the second of the
 state trees we designed.
@@ -904,7 +904,126 @@ modified   test/core_spec.js
     function from Immutable. 
 
 *** Moving to The Next Pair 
+    CLOCK: [2015-11-24 মঙ্গল 19:32]
+    :PROPERTIES:
+    :Effort:   0:39
+    :END:
+    Once the vote for a given pair is over, we should proceed to the next one. The
+    winning entry from the current vote should be kept, and added back to the end
+    of the entries, so that it will later be paired with something else. The losing
+    entry is thrown away. If there is a tie, both entries are kept.
+    Head:     c5b0f2d master send winner[s] back to entries
+    tag: c5b0f2dff360b81b73e5d422b211f0d8bae60c13
+    #+BEGIN_SRC 
+ @@ -3,8 +3,19 @@ export function setEntries(state,entries){
+   return state.set('entries', List(entries));
+ }
+ 
++function getWinners(vote) {
++  if (!vote) return [];
++  const [a,b] = vote.get('pair');
++  const aVotes = vote.getIn(['tally', a ] , 0);
++  const bVotes = vote.getIn(['tally', b ] , 0);
++  if ( aVotes > bVotes )    return [a];
++  if ( aVotes < bVotes )    return [b];
++  return [a, b];
++}
++
+ export function next(state){
+-  const entries = state.get('entries');
++  const entries = state.get('entries')
++                       .concat(getWinners(state.get('vote')));
+   return state.merge({
+     vote: Map({pair: entries.take(2)}),
+     entries: entries.skip(2)
+modified   test/core_spec.js
+@@ -27,7 +27,47 @@ describe('application logic', () => {
+ 	entries: List.of('Sunshine')
+       }));
+     });
++    it('puts winner of current vote back to entries', () => {
++      const state = Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later'),
++          tally: Map({
++            'Trainspotting': 4,
++            '28 Days Later': 2
++          })
++	}),
++	entries: List.of('Sunshine', 'Millions', '127 Hours')
++      });
++      const nextState = next(state);
++      expect(nextState).to.equal(Map({
++	vote: Map({
++          pair: List.of('Sunshine', 'Millions')
++	}),
++	entries: List.of('127 Hours', 'Trainspotting')
++      }));
++    });
++
++    it('puts both from tied vote back to entries', () => {
++      const state = Map({
++	vote: Map({
++          pair: List.of('Trainspotting', '28 Days Later'),
++          tally: Map({
++            'Trainspotting': 3,
++            '28 Days Later': 3
++          })
++	}),
++	entries: List.of('Sunshine', 'Millions', '127 Hours')
++      });
++      const nextState = next(state);
++      expect(nextState).to.equal(Map({
++	vote: Map({
++          pair: List.of('Sunshine', 'Millions')
++	}),
++	entries: List.of('127 Hours', 'Trainspotting', '28 Days Later')
++      }));
++    });
+   });
++  
+   describe('vote', () => {
+     it('creates a tally for the voted entry', () => {
+       const state = Map({
+
+    #+END_SRC
     
+    #+BEGIN_SRC sh :results verbatim
+    npm run test
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_example
+
+    > voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+    > mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+      application logic
+	setEntries
+          ✓ adds the entries to the state
+	next
+          ✓ takes the next two entries under vote
+          ✓ puts winner of current vote back to entries
+          ✓ puts both from tied vote back to entries
+	vote
+          ✓ creates a tally for the voted entry
+          ✓ adds to existing tally for the voted entry
+
+      immutability
+	a number
+          ✓ is immutable
+	A List
+          ✓ is immutable
+	a tree
+          ✓ is immatable
+
+
+      9 passing (35ms)
+
+#+end_example
+
 *** Ending The Vote 
 
 ** Introducing Actions and Reducers 
