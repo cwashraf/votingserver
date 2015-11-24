@@ -348,6 +348,7 @@ npm run test
      a list of movies. An operation that adds a movie produces a new list that is
      the old list and the new movie combined. Crucially, the old state remains
      unchanged after the operation:
+Head:     dad130b master immutable list tested
 #+BEGIN_SRC js :tangle test/immutable_spec.js
 imporot {expect} from 'chai';
 import {List} from 'immutable';
@@ -418,6 +419,90 @@ Applying an operation to it involves producing a new state tree, leaving the
 previous one untouched. If the state tree is a Map with a key 'movies' that
 contains a List of movies, 
 **** adding a movie means we need to create a new Map where the movies key points to a new List
+#+BEGIN_SRC js :tangle test/immutable_spec.js
+imporot {expect} from 'chai';
+import {List, Map} from 'immutable';
+
+describe('immutability', () => {
+  describe('a number', () => {
+    function increment(currentState) {
+      return currentState + 1;
+    }
+    it('is immutable', () => {
+      let state = 42;
+      let nextState = increment(state);
+      expect(nextState).to.equal(43);
+      expect(state).to.equal(42);
+    });
+  });
+
+  describe('A List', () => {
+    function addMovie(currentState, movie){
+      return currentState.push(movie);
+    }
+
+    it('is immutable', () => {
+      let state = List.of('Trainspotting', '28 Days Later');
+      let nextState = addMovie(state, 'Sunshine');
+
+      expect(nextState).to.equal(List.of(
+	'Trainspotting',
+	'28 Days Later',
+	'Sunshine'
+      ));
+      expect(state).to.equal(List.of(
+	'Trainspotting',
+	'28 Days Later'
+      ));
+
+    });
+  });
+
+  describe('a tree' , () => {
+    function addMovie(currentState, movie ) {
+      return currentState.set(
+	'movies',
+	currentState.get('movies').push(movie)
+      );
+    }
+
+    it('is immatable', () => {
+      let state = Map({
+	movies: List.of('Trainspotting', '28 Days Later')
+      });
+      let nextState = addMovie(state, 'Sunshine');
+
+      expect(nextState).to.equal(Map({
+	movies: List.of(
+	  'Trainspotting',
+	  '28 Days Later',
+	  'Sunshine'
+	)
+      }));
+    });
+  });
+});
+#+END_SRC
+
+#+BEGIN_SRC sh
+npm run test
+#+END_SRC
+
+#+RESULTS:
+ > voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+ > mocha --compilers  js:babel-core/register  --require ./test/test_helper.js --recursive 
+
+| immutability |         |        |           |  
+| a	       | number	 |	  |	      |	 
+|	       | ✓	 | is	  | immutable |	 
+| A	       | List	 |	  |	      |	 
+|	       | ✓	 | is	  | immutable |	 
+| a	       | tree	 |	  |	      |	 
+|	       | ✓	 | is	  | immatable |	 
+|	       |	 |	  |	      |	 
+|	       |	 |	  |	      |	 
+| 3	       | passing | (30ms) |	      |	 
+|	       |	 |	  |	      |	 
 
 ** Writing The Application Logic With Pure Functions 
    CLOCK: [2015-11-24 মঙ্গল 10:02]--[2015-11-24 মঙ্গল 11:03] =>  1:01

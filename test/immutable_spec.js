@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {List} from 'immutable';
+import {List, Map} from 'immutable';
 
 describe('immutability', () => {
   describe('a number', () => {
@@ -33,6 +33,30 @@ describe('immutability', () => {
 	'28 Days Later'
       ));
 
+    });
+  });
+
+  describe('a tree' , () => {
+    function addMovie(currentState, movie ) {
+      return currentState.set(
+	'movies',
+	currentState.get('movies').push(movie)
+      );
+    }
+
+    it('is immatable', () => {
+      let state = Map({
+	movies: List.of('Trainspotting', '28 Days Later')
+      });
+      let nextState = addMovie(state, 'Sunshine');
+
+      expect(nextState).to.equal(Map({
+	movies: List.of(
+	  'Trainspotting',
+	  '28 Days Later',
+	  'Sunshine'
+	)
+      }));
     });
   });
 });
