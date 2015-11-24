@@ -723,7 +723,7 @@ npm run test
   5 passing (28ms)
 
 #+end_example
-
+**** Head:     9e91d63 master prepare 2 canditate for voting.
 #+BEGIN_SRC 
 modified   src/core.js
 @@ -1,4 +1,12 @@
@@ -769,10 +769,142 @@ modified   test/core_spec.js
 +    });
 +  });
  });
-
 #+END_SRC
-*** Voting 
+*** Voting
+    CLOCK: [2015-11-24 মঙ্গল 18:15]--[2015-11-24 মঙ্গল 19:27] =>  1:12
+    :PROPERTIES:
+    :Effort:   1:00
+    :END:
+
+    When a vote is ongoing, it should be possible for people to vote on entries.
+    When a new vote is cast for an entry, a "tally" for it should appear in the
+    vote. If there already is a tally for the entry, it should be incremented:
+    
+    tag: 40d673bc12d521250ff4418e09105ac270f92c4d
+    Parent:     d17fe11 diff code insertion
+    
+    #+BEGIN_SRC 
+modified   src/core.js
+@@ -10,3 +10,11 @@ export function next(state){
+     entries: entries.skip(2)
+   });
+ }
++
++export function vote(state, entry){
++  return state.updateIn(
++    ['vote', 'tally', entry ],
++    0,
++    tally => tally + 1
++  );
++}
+modified   test/core_spec.js
+@@ -1,7 +1,7 @@
+ 
+ import {List, Map} from 'immutable';
+ import {expect} from 'chai';
+-import {setEntries, next} from '../src/core';
++import {setEntries, next, vote} from '../src/core';
+ 
+ describe('application logic', () => {
+   describe('setEntries', () => {
+@@ -28,4 +28,47 @@ describe('application logic', () => {
+       }));
+     });
+   });
++  describe('vote', () => {
++    it('creates a tally for the voted entry', () => {
++      const state = Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later')
++	}),
++	entries: List()
++      });
++      const nextState = vote(state, 'Trainspotting' );
++      expect(nextState).to.equal(Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later'),
++	  tally: Map({
++	    'Trainspotting': 1
++	  })
++	}),
++	entries: List()
++      }));
++    });
++    it('adds to existing tally for the voted entry', () => {
++      const state = Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later'),
++	  tally: Map({
++	    'Trainspotting': 3,
++	    '28 Days Later': 2
++	  }),
++	}),
++	entries: List()
++      });
++      const nextState = vote(state, 'Trainspotting');
++      expect(nextState).to.equal(Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later'),
++	  tally: Map({
++	    'Trainspotting': 4,
++	    '28 Days Later': 2
++	  }),
++	}),
++	entries: List()
++      }));
++    });
++  });
+ });
+#+END_SRC
+
+    #+BEGIN_SRC sh :results verbatim
+    npm run test 
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_example
+
+ > voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+ > mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+   application logic
+     setEntries
+       ✓ adds the entries to the state
+     next
+       ✓ takes the next two entries under vote
+     vote
+       ✓ creates a tally for the voted entry
+       ✓ adds to existing tally for the voted entry
+
+   immutability
+     a number
+       ✓ is immutable
+     A List
+       ✓ is immutable
+     a tree
+       ✓ is immatable
+
+
+   7 passing (29ms)
+
+#+end_example
+    Using updateIn makes this pleasingly succinct. What the code expresses is
+    "reach into the nested data structure path ['vote', 'tally', 'Trainspotting'],
+    and apply this function there. If there are keys missing along the path, create
+    new Maps in their place. If the value at the end is missing, initialize it with
+    0".
+
+    It packs a lot of punch, but this is exactly the kind of code that makes
+    working with immutable data structures pleasant, so it's worth spending a bit
+    of time getting comfortable with it.
+    
+    You could build all these nested Maps and Lists more concisely using the fromJS
+    function from Immutable. 
+
 *** Moving to The Next Pair 
+    
 *** Ending The Vote 
 
 ** Introducing Actions and Reducers 
