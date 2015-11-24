@@ -1,17 +1,30 @@
-* TODO What You Will Need
+#+SEQ_TODO: TODAY TOMORROW TEST DONE
+* TODAY What You Will Need
+  CLOCK: [2015-11-24 মঙ্গল 09:52]--[2015-11-24 মঙ্গল 10:02] =>  0:10
+  CLOCK: [2015-11-24 মঙ্গল 09:38]--[2015-11-24 মঙ্গল 09:50] =>  0:12
+  :PROPERTIES:
+  :Effort:   0:13
+  :END:
 ** http://teropa.info/blog/2015/09/10/full-stack-redux-tutorial.html
 ** Install following packages 
-*** TODO Node
-*** ES6
+*** DONE Node
+    CLOSED: [2015-11-24 মঙ্গল 09:37]
+#+BEGIN_SRC sh 
+node -v 
+#+END_SRC
+
+#+RESULTS:
+: v4.2.1
+*** DONE ES6
 *** React
 *** Webpack
 *** and Babel
-** TODO For good introduction we need to take a look at [[http://survivejs.com/][SurviveJS]]
+** TOMORROW For good introduction we need to take a look at [[http://survivejs.com/][SurviveJS]]
 * The App 
-** We'll be developing an application for organizing live votes for parties, conferences, meetings, and other gatherings of people.
+** We'll be developing an application for organizing live votes 
+*** for parties, conferences, meetings, and other gatherings of people.
 ** For example, here's how a vote on the best Danny Boyle film
 could go:
-
 The app puts entries against each other in pairs, until a winner is found. 
 
 ** The app will have two separate user interfaces: The voting UI
@@ -52,13 +65,13 @@ about your application's state is stored in one data structure formed out
 of maps and arrays.
 
 ** Project Setup
-*** This results in a directory with the single file "package.json" in it.
+*** DONE This results in a directory with the single file "package.json" in it.
 #+BEGIN_SRC sh
 npm init -y
 #+END_SRC
-
+    
 #+RESULTS:
-*** Install ES6, Mocha, Cha 
+*** DONE Install ES6, Mocha, Cha 
 #+BEGIN_SRC sh
 npm install --save-dev babel-core babel-cli babel-preset-es2015
 npm install --save-dev mocha chai
@@ -150,16 +163,301 @@ npm install --save-dev mocha chai
 | ├──                        | glob@3.2.3                                                  | (inherits@2.0.1,                             | graceful-fs@2.0.3,                            | minimatch@0.2.14)                   |                                    |                        |                                 |                        |                            |                       |                     |           |                  |                        |                   |                      |                        |             |           |                      |
 | └──                        | jade@0.26.3                                                 | (commander@0.6.1,                            | mkdirp@0.3.0)                                 |                                     |                                    |                        |                                 |                        |                            |                       |                     |           |                  |                        |                   |                      |                        |             |           |                      |
 |                            |                                                             |                                              |                                               |                                     |                                    |                        |                                 |                        |                            |                       |                     |           |                  |                        |                   |                      |                        |             |           |                      |
-*** tests with mocha command 
+*** DONE tests with mocha command 
 #+BEGIN_SRC sh
 mkdir test
 ./node_modules/mocha/bin/mocha --compilers js:babel-core/register --recursive
 #+END_SRC
 
 #+RESULTS:
+|                 |
+|                 |
+| 0 passing (3ms) |
+*** DONE Place the command in package.json
+package.json
+"scripts": {
+  "test": "mocha --compilers js:babel-core/register --recursive"
+},
+*** DONE Another thing we need to do is enable Babel's ES6/ES2015 language support. It's
+done by activating the babel-preset-es2015 package that we already installed.
+We just need to add a "babel" section to package.json:
 
-** Getting Comfortable With Immutable 
+package.json
+"babel": {
+  "presets": ["es2015"]
+}
+*** DONE test npm 
+#+BEGIN_SRC sh
+npm run test
+#+END_SRC
+
+#+RESULTS:
+|   |                     |             |                                          |             |
+| > | voting-server@1.0.0 | test        | /usr/local/src/jstutorials/voting-server |             |
+| > | mocha               | --compilers | js:babel-core/register                   | --recursive |
+|   |                     |             |                                          |             |
+|   |                     |             |                                          |             |
+|   |                     |             |                                          |             |
+| 0 | passing             | (3ms)       |                                          |             |
+|   |                     |             |                                          |             |
+
+*** DONE Add immutability 
+One of the first libraries we're going to be using is Facebook's Immutable,
+which provides a number of data structures for us to use. We're going to start
+discussing Immutable in the next section, but for now let's just add it to the
+project, along with the chai-immutable library that extends Chai to add support
+for comparing Immutable data structures:
+
+#+BEGIN_SRC sh
+npm install --save immutable
+npm install --save-dev chai-immutable
+
+#+END_SRC
+
+#+RESULTS:
+| immutable@3.7.5      | node_modules/immutable      |
+| chai-immutable@1.5.2 | node_modules/chai-immutable |
+*** We need to let plug in chai-immutable before any tests are run.
+**** DONE Add test/test_helper.js
+#+BEGIN_SRC js :tangle test/test_helper.js
+import chai from 'chai';
+import chaiImmutable from 'chai-immutable';
+
+chai.use(chaiImmutable);
+
+#+END_SRC
+**** Modify package.json
+"scripts": {
+  "test": "mocha --compilers js:babel-core/register --require ./test/test_helper.js  --recursive",
+  "test:watch": "npm run test -- --watch"
+},
+
+** Getting Comfortable With Immutable				  :IMMUTABLE:
+   CLOCK: [2015-11-24 মঙ্গল 11:17]
+   :PROPERTIES:
+   :Effort:   0:30
+   :END:
+The second important point about the Redux architecture is that the state is
+not just a tree, but it is in fact an immutable tree.
+*** The state is not just a tree, but it is in fact an immutable tree.
+Looking at the trees in the previous section, it might at first seem like a
+reasonable idea to have code that changes the state of the application by just
+making updates in the tree: Replacing things in maps, removing things from
+arrays, etc. However, this is not how things are done in Redux.
+*** the next state is another state tree that reflects the current changes
+A Redux application's state tree is an immutable data structure. That means
+that once you have a state tree, it will never change as long as it exists. It
+will keep holding the same state forever. How you then go to the next state is
+by producing another state tree that reflects the changes you wanted to make.
+*** Two successive states of the application are stored in two separate and independent trees. 
+This means any two successive states of the application are stored in two
+separate and independent trees. How you get from one to the next is by applying
+a function that takes the current state and returns a new state.
+*** How you get from one to the next is by applying a function that takes the current state and returns a new state.
+*** Immutability Helpful for debuging
+**** Can hold on to the history of your application
+**** You can then do things like undo/redo for "free"
+**** serialize the history
+just setthe current application state to the previous or next tree in the history. 
+You can also serialize the history and save it for later, or send it to some
+storage so that you can replay it later, which can be hugely helpful when
+debugging.
+*** Data in, data out , pure function
+However, I'd say that even beyond these extra features, the most important
+thing about immutable data is how it simplifies your code. You get to program
+with pure functions: 
+**** pure functions: 
+Functions that take data and return data and do nothing
+else. These are functions that you can trust to behave predictably. You can
+call them as many times as you like and their behavior won't change. Give them
+the same arguments, and they'll return the same results. They're not going to
+change the state of the world. Testing becomes trivial, as you don't need to
+set up stubs or other fakes to "prepare the universe" before you call
+something. It's just data in, data out.
+*** Immutable data structures are the material we'll build our application's state
+Immutable data structures are the material we'll build our application's state
+from, so let's spend some time getting comfortable with it by writing some unit
+tests that illustrate how it all works.
+*** Unit Testing Immutable Counter 
+If you're already comfortable with immutable data and the Immutable library,
+feel free to skip to the next section. 
+**** To get acquainted with the idea of immutability
+it may be helpful to first talk about the simplest possible data structure: What if you had a "counter"
+application whose state was nothing but a single number? The state would go
+from 0 to 1 to 2 to 3, etc.
+**** We are already used to thinking of numbers as immutable data. 
+     When the counter increments, we don't mutate a number. It would in fact be 
+     impossible as there are no "setters" on numbers. You can't say 42.setValue(43).
+**** What happens instead is we get another number
+     Which is the result of adding 1 to the previous number. 
+     That we can do with a pure function. Its argument is the current state and 
+     its return value will be used as the next state. When it is called, 
+     it does not change the current state. Here is such a function and a
+     unit test for it:
+
+#+BEGIN_SRC js :tangle test/immutable_spec.js
+import {expect} from 'chai'
+describe('a number', () => {
+  function increment(currentState) {
+    return currentState + 1;
+  }
+  it('is immutable', () => {
+    let state = 42;
+    let nextState = increment(state);
+    expect(nextState).to.equal(43);
+    expect(state).to.equal(42);
+  });
+});
+#+END_SRC
+
+#+BEGIN_SRC sh :results verbatim drawer
+npm run test
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  immutability
+    a number
+      ✓ is immutable
+
+
+  1 passing (55ms)
+
+:END:
+
 ** Writing The Application Logic With Pure Functions 
+   CLOCK: [2015-11-24 মঙ্গল 10:02]--[2015-11-24 মঙ্গল 11:03] =>  1:01
+   :PROPERTIES:
+   :Effort:   0:54
+   :ORDERED:  t
+   :END:
+Armed with an understanding of immutable state trees and the functions that
+operate on them, we can turn our attention to the logic of our voting
+application itself. The core of the app will be formed from the pieces that we
+have been discussing: A tree structure and a set of functions that produce new
+versions of that tree structure.
+
+*** Loading Entries
+**** First of all, as we discussed earlier, the application allows "loading in" a
+collection of entries that will be voted on. We could have a function called
+setEntries that takes a previous state and a collection of entries and produces
+a state where the entries are included. Here's a test for that:
+**** code 
+#+BEGIN_SRC js :tangle test/core_spec.js
+import {List, Map} from 'immutable';
+import {expect} from 'chai';
+import {setEntries} from '../src/core';
+
+describe('application logic', () => {
+  describe('setEntries', () => {
+    it('adds the entries to the state', ()=> {
+      const state = Map();
+      const entries = List.of('Trainspotting', '28 Days Later');
+      const nextState = setEntries(state, entries);
+      expect(nextState).to.equal(Map({
+        entries: List.of('Trainspotting', '28 Days Later')
+      }));
+    });
+  });
+});
+
+#+END_SRC
+
+#+BEGIN_SRC js :tangle src/core.js
+export function setEntries(state,entries){
+  return state.set('entries', entries);
+}
+#+END_SRC
+
+#+BEGIN_SRC sh :results verbatim drawer
+npm run test
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  application logic
+    setEntries
+      ✓ adds the entries to the state
+
+  a number
+    ✓ is immutable
+
+
+  2 passing (23ms)
+
+:END:
+
+*** Starting The Vote 
+*** Voting 
+*** Moving to The Next Pair 
+*** Ending The Vote 
+
+** Introducing Actions and Reducers 
+** A Taste of Reducer Composition 
+** Introducing The Redux Store 
+** Setting Up a Socket.io Server 
+** Broadcasting State from A Redux Listener 
+** Receiving Remote Redux Actions 
+
+* The Client Application 
+
+** Client Project Setup 
+
+*** Unit Testing support 
+
+** React and react-hot-loader 
+** Writing The UI for The Voting Screen 
+** Immutable Data And Pure Rendering 
+** Writing The UI for The Results Screen And Handling Routing 
+** Introducing A Client-Side Redux Store 
+** Getting Data In from Redux to React 
+** Setting Up The Socket.io Client 
+** Receiving Actions From The Server 
+** Dispatching Actions From React Components 
+** Sending Actions To The Server Using Redux Middleware 
+
+* Exercises 
+
+** 1. Invalid Vote Prevention 
+** 2. Improved Vote State Reset 
+** 3. Duplicate Vote Prevention 
+** 4. Restarting The Vote 
+** 5. Indicating Socket Connection State 
+** Bonus Challenge: Going Peer to Peer 
+
+
+#+RESULTS:
+:RESULTS:
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> ./node_modules/mocha/bin/mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  application logic
+    setEntries
+      ✓ adds the entries to the state
+
+  a number
+    ✓ is immutable
+
+
+  2 passing (22ms)
+
+:END:
+
 *** Loading Entries 
 *** Starting The Vote 
 *** Voting 
