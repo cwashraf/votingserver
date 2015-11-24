@@ -683,7 +683,94 @@ npm run test
        }));
 #+END_SRC
 
-*** Starting The Vote 
+*** Starting The Vote Second state
+    CLOCK: [2015-11-24 মঙ্গল 16:12]--[2015-11-24 মঙ্গল 16:42] =>  0:30
+ 
+    We can begin the voting by calling a function called next on a state that
+already has entries set. That means, going from the first to the second of the
+state trees we designed.
+
+The function takes no additional arguments. It should create a vote Map on the
+state, where the two first entries are included under the key pair. The entries
+under vote should no longer be in the entries List:
+#+BEGIN_SRC sh :results verbatim
+npm run test
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  application logic
+    setEntries
+      ✓ adds the entries to the state
+    next
+      ✓ takes the next two entries under vote
+
+  immutability
+    a number
+      ✓ is immutable
+    A List
+      ✓ is immutable
+    a tree
+      ✓ is immatable
+
+
+  5 passing (28ms)
+
+#+end_example
+
+#+BEGIN_SRC 
+modified   src/core.js
+@@ -1,4 +1,12 @@
+-import {List} from 'immutable';
++import {List, Map} from 'immutable';
+ export function setEntries(state,entries){
+   return state.set('entries', List(entries));
+ }
++
++export function next(state){
++  const entries = state.get('entries');
++  return state.merge({
++    vote: Map({pair: entries.take(2)}),
++    entries: entries.skip(2)
++  });
++}
+modified   test/core_spec.js
+@@ -1,7 +1,7 @@
+ 
+ import {List, Map} from 'immutable';
+ import {expect} from 'chai';
+-import {setEntries} from '../src/core';
++import {setEntries, next} from '../src/core';
+ 
+ describe('application logic', () => {
+   describe('setEntries', () => {
+@@ -14,4 +14,18 @@ describe('application logic', () => {
+       }));
+     });
+   });
++  describe('next',() => {
++    it('takes the next two entries under vote', () => {
++      const state = Map({
++	entries: List.of('Trainspotting', '28 Days Later', 'Sunshine')
++      });
++      const nextState = next(state);
++      expect(nextState).to.equal(Map({
++	vote: Map({
++	  pair: List.of('Trainspotting', '28 Days Later')
++	}),
++	entries: List.of('Sunshine')
++      }));
++    });
++  });
+ });
+
+#+END_SRC
 *** Voting 
 *** Moving to The Next Pair 
 *** Ending The Vote 
