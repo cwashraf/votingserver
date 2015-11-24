@@ -275,6 +275,7 @@ change the state of the world. Testing becomes trivial, as you don't need to
 set up stubs or other fakes to "prepare the universe" before you call
 something. It's just data in, data out.
 *** Immutable data structures are the material we'll build our application's state
+   CLOCK: [2015-11-24 মঙ্গল 12:35]--[2015-11-24 মঙ্গল 13:35] =>  1:00
 Immutable data structures are the material we'll build our application's state
 from, so let's spend some time getting comfortable with it by writing some unit
 tests that illustrate how it all works.
@@ -526,7 +527,7 @@ code more concise:
 #+BEGIN_SRC sh
 npm run test
 #+END_SRC
-
+Head:     b23ffbc master helper functions that make it easier to reach into
 #+RESULTS:
 | >  voting-server@1.0.0  test  /usr/local/src/jstutorials/voting-server     
 | >  mocha  --compilers  js:babel-core/register  --require  ./test/test_helper.js  --recursive  
@@ -542,6 +543,18 @@ npm run test
 |              |         |        |           |
 | 3            | passing | (33ms) |           |
 |              |         |        |           |
+**** Reasons for using IMMUTABLE library
+***** Immutable's data structures are designed from the ground up to be used
+      immutably and thus provide an API that makes immutable operations convenient. 
+***** I'm partial to Rich Hickey's view that there is no such as thing as
+      immutability by convention. If you use data structures that allow mutations,
+      sooner or later you or someone else is bound to make a mistake and mutate
+      them. This is especially true when you're just getting started. Things like
+      Object.freeze() may help with this. 
+***** Immutable's data structures are persistent, meaning that they are internally
+      structured so that producing new versions is efficient both in terms of time
+      and memory, even for large state trees. Using plain objects and arrays may
+      result in excessive amounts of copying, which hurts performance. 
 
 ** Writing The Application Logic With Pure Functions 
    CLOCK: [2015-11-24 মঙ্গল 10:02]--[2015-11-24 মঙ্গল 11:03] =>  1:01
@@ -556,11 +569,10 @@ have been discussing: A tree structure and a set of functions that produce new
 versions of that tree structure.
 
 *** Loading Entries
-**** First of all, as we discussed earlier, the application allows "loading in" a
-collection of entries that will be voted on. We could have a function called
-setEntries that takes a previous state and a collection of entries and produces
-a state where the entries are included. Here's a test for that:
-**** code 
+**** Test Case for Entries and Source Code
+     the application allows "loading in" a collection of entries that will be voted on. 
+     We could have a function called setEntries that takes a previous state and 
+     a collection of entries and produces a state where the entries are included. 
 #+BEGIN_SRC js :tangle test/core_spec.js
 import {List, Map} from 'immutable';
 import {expect} from 'chai';
@@ -587,12 +599,12 @@ export function setEntries(state,entries){
 }
 #+END_SRC
 
-#+BEGIN_SRC sh :results verbatim drawer
-npm run test
+#+BEGIN_SRC sh :results verbatim 
+npm run test 
 #+END_SRC
 
 #+RESULTS:
-:RESULTS:
+#+begin_example
 
 > voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
 > mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
@@ -603,13 +615,45 @@ npm run test
     setEntries
       ✓ adds the entries to the state
 
-  a number
-    ✓ is immutable
+  immutability
+    a number
+      ✓ is immutable
+    A List
+      ✓ is immutable
+    a tree
+      ✓ is immatable
 
 
-  2 passing (23ms)
+  4 passing (105ms)
 
-:END:
+#+end_example
+***** Array to Immutable List
+#+BEGIN_SRC sh :results verbatim
+npm run test
+#+END_SRC 
+
+#+RESULTS:
+|              |                     |             |                                          |           |                       |             |       |
+| >            | voting-server@1.0.0 | test        | /usr/local/src/jstutorials/voting-server |           |                       |             |       |
+| >            | mocha               | --compilers | js:babel-core/register                   | --require | ./test/test_helper.js | --recursive |       |
+|              |                     |             |                                          |           |                       |             |       |
+|              |                     |             |                                          |           |                       |             |       |
+|              |                     |             |                                          |           |                       |             |       |
+| application  | logic               |             |                                          |           |                       |             |       |
+| setEntries   |                     |             |                                          |           |                       |             |       |
+|              | ✓                   | adds        | the                                      | entries   | to                    | the         | state |
+|              |                     |             |                                          |           |                       |             |       |
+| immutability |                     |             |                                          |           |                       |             |       |
+| a            | number              |             |                                          |           |                       |             |       |
+|              | ✓                   | is          | immutable                                |           |                       |             |       |
+| A            | List                |             |                                          |           |                       |             |       |
+|              | ✓                   | is          | immutable                                |           |                       |             |       |
+| a            | tree                |             |                                          |           |                       |             |       |
+|              | ✓                   | is          | immatable                                |           |                       |             |       |
+|              |                     |             |                                          |           |                       |             |       |
+|              |                     |             |                                          |           |                       |             |       |
+| 4            | passing             | (36ms)      |                                          |           |                       |             |       |
+|              |                     |             |                                          |           |                       |             |       |
 
 *** Starting The Vote 
 *** Voting 
