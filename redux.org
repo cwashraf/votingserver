@@ -233,9 +233,9 @@ chai.use(chaiImmutable);
 },
 
 ** Getting Comfortable With Immutable				  :IMMUTABLE:
-   CLOCK: [2015-11-24 মঙ্গল 11:17]
+   CLOCK: [2015-11-24 মঙ্গল 11:17]--[2015-11-24 মঙ্গল 12:44] =>  1:27
    :PROPERTIES:
-   :Effort:   0:30
+   :Effort:   1:40
    :END:
 The second important point about the Redux architecture is that the state is
 not just a tree, but it is in fact an immutable tree.
@@ -296,18 +296,18 @@ from 0 to 1 to 2 to 3, etc.
      unit test for it:
 
 #+BEGIN_SRC js :tangle test/immutable_spec.js
-import {expect} from 'chai'
-describe('a number', () => {
-  function increment(currentState) {
-    return currentState + 1;
-  }
-  it('is immutable', () => {
-    let state = 42;
-    let nextState = increment(state);
-    expect(nextState).to.equal(43);
-    expect(state).to.equal(42);
+  import {expect} from 'chai'
+  describe('a number', () => {
+    function increment(currentState) {
+      return currentState + 1;
+    }
+    it('is immutable', () => {
+      let state = 42;
+      let nextState = increment(state);
+      expect(nextState).to.equal(43);
+      expect(state).to.equal(42);
+    });
   });
-});
 #+END_SRC
 
 #+BEGIN_SRC sh :results verbatim drawer
@@ -330,6 +330,94 @@ npm run test
   1 passing (55ms)
 
 :END:
+
+**** The fact that state doesn't change when increment is called should be obvious.
+     How could it? Numbers are immutable!
+**** You may have noticed that this test really has nothing to do with our
+     application - we don't even have any application code yet! 
+**** The test is just a learning tool for us. 
+     I often find it useful to explore a new API or technique by writing unit tests 
+     that exercise the relevant ideas, which is what we're doing here. Kent Beck calls 
+     these kinds of tests "Learning Tests" in his original TDD book. 
+     
+     What we're going to do next is extend this same idea of immutability to all
+     kinds of data structures, not just numbers.
+
+**** Immutable's Lists 
+     we can, for example, have an application whose state is
+     a list of movies. An operation that adds a movie produces a new list that is
+     the old list and the new movie combined. Crucially, the old state remains
+     unchanged after the operation:
+#+BEGIN_SRC js :tangle test/immutable_spec.js
+imporot {expect} from 'chai';
+import {List} from 'immutable';
+
+describe('immutability', () => {
+  describe('a number', () => {
+    function increment(currentState) {
+      return currentState + 1;
+    }
+    it('is immutable', () => {
+      let state = 42;
+      let nextState = increment(state);
+      expect(nextState).to.equal(43);
+      expect(state).to.equal(42);
+    });
+  });
+
+  describe('A List', () => {
+    function addMovie(currentState, movie){
+      return currentState.push(movie);
+    }
+
+    it('is immutable', () => {
+      let state = List.of('Trainspotting', '28 Days Later');
+      let nextState = addMovie(state, 'Sunshine');
+
+      expect(nextState).to.equal(List.of(
+	'Trainspotting',
+	'28 Days Later',
+	'Sunshine'
+      ));
+      expect(state).to.equal(List.of(
+	'Trainspotting',
+	'28 Days Later'
+      ));
+
+    });
+  });
+});
+#+END_SRC
+
+#+BEGIN_SRC sh
+npm run test
+#+END_SRC
+
+#+RESULTS:
+ > voting-server@1.0.0  test  /usr/local/src/jstutorials/voting-server
+ > mocha --compilers  js:babel-core/register --require ./test/test_helper.js --recursive 
+
+|--------------+---------+--------+-----------|
+| immutability |         |        |           |
+| a            | number  |        |           |
+|              | ✓       | is     | immutable |
+| A            | List    |        |           |
+|              | ✓       | is     | immutable |
+|              |         |        |           |
+|              |         |        |           |
+| 2            | passing | (28ms) |           |
+|              |         |        |           |
+
+The old state would not have remained unchanged if we'd pushed into a regular
+array! Since we're using an Immutable List instead, we have the same semantics
+as we had with the number example.
+
+The idea extends to full state trees as well. A state tree is just a nested
+data structure of Lists, Maps, and possibly other kinds of collections.
+Applying an operation to it involves producing a new state tree, leaving the
+previous one untouched. If the state tree is a Map with a key 'movies' that
+contains a List of movies, 
+**** adding a movie means we need to create a new Map where the movies key points to a new List
 
 ** Writing The Application Logic With Pure Functions 
    CLOCK: [2015-11-24 মঙ্গল 10:02]--[2015-11-24 মঙ্গল 11:03] =>  1:01
