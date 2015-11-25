@@ -1354,9 +1354,262 @@ export default function reducer(state = INITIAL_STATE, action) {
   return state;
 }
 
+#+BEGIN_SRC sh
+npm run test
+#+END_SRC
 
-** A Taste of Reducer Composition 
+#+RESULTS:
+|              |                     |             |                                          |           |                       |             |       |       |         |
+| >            | voting-server@1.0.0 | test        | /usr/local/src/jstutorials/voting-server |           |                       |             |       |       |         |
+| >            | mocha               | --compilers | js:babel-core/register                   | --require | ./test/test_helper.js | --recursive |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+| application  | logic               |             |                                          |           |                       |             |       |       |         |
+| setEntries   |                     |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | adds        | the                                      | entries   | to                    | the         | state |       |         |
+| next         |                     |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | takes       | the                                      | next      | two                   | entries     | under | vote  |         |
+|              | ✓                   | puts        | winner                                   | of        | current               | vote        | back  | to    | entries |
+|              | ✓                   | puts        | both                                     | from      | tied                  | vote        | back  | to    | entries |
+|              | ✓                   | marks       | winner                                   | when      | just                  | one         | entry | left  |         |
+| vote         |                     |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | creates     | a                                        | tally     | for                   | the         | voted | entry |         |
+|              | ✓                   | adds        | to                                       | existing  | tally                 | for         | the   | voted | entry   |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+| immutability |                     |             |                                          |           |                       |             |       |       |         |
+| a            | number              |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | is          | immutable                                |           |                       |             |       |       |         |
+| A            | List                |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | is          | immutable                                |           |                       |             |       |       |         |
+| a            | tree                |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | is          | immatable                                |           |                       |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+| Reducer      |                     |             |                                          |           |                       |             |       |       |         |
+|              | ✓                   | handles     | SET_ENTRIES                              |           |                       |             |       |       |         |
+|              | ✓                   | handles     | NEXT                                     |           |                       |             |       |       |         |
+|              | ✓                   | handles     | VOTE                                     |           |                       |             |       |       |         |
+|              | ✓                   | has         | an                                       | initial   | state                 |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+| 14           | passing             | (40ms)      |                                          |           |                       |             |       |       |         |
+|              |                     |             |                                          |           |                       |             |       |       |         |
+This ability to batch and/or replay a collection of actions is a major benefit
+of the action/reducer model of state transitions, when compared to calling the
+core functions directly. For example, given that actions are just objects that
+you can also serialize to JSON, you could easily send them over to a Web Worker
+and run your reducer logic there. Or you can even send them over the network,
+as we're going to do later!
+
+Note that we are using plain objects as actions instead of Immutable data
+structures. This is something Redux actually requires us to do. 
+
+** A Taste of Reducer Composition
+   CLOCK: [2015-11-26 বৃহঃ 00:15]--[2015-11-26 বৃহঃ 00:25] =>  0:10
+ 
+Our core functionality is currently defined so that each function takes the
+whole state of the application and returns the whole, next state of the
+application.
+
+It is easy to see how keeping to this pattern may not be a good idea in large
+applications. If each and every operation in the application needs to be aware
+of the structure of the whole state, things can easily get brittle. If you
+wanted to change the shape of the state, it would require a whole lot of
+changes.
+
+It is a much better idea to, whenever you can, make operations work on the
+smallest piece (or subtree) of the state possible. What we're talking about is
+modularization: Have the functionality that deals with a given piece of data
+deal with only that part of the data, as if the rest didn't exist.
+
+Our application is so tiny that we don't have a problem of this kind yet, but
+we do already have one opportunity to improve on this: There is no reason for
+the vote function to receive the whole app state, since it only works on the
+'vote' part of it. That's the only thing it should know about. We can modify
+the existing unit tests for vote to reflect this idea:
+
+test/core_spec.js
+describe('vote', () => {
+
+  it('creates a tally for the voted entry', () => {
+    const state = Map({
+      pair: List.of('Trainspotting', '28 Days Later')
+    });
+    const nextState = vote(state, 'Trainspotting')
+    expect(nextState).to.equal(Map({
+      pair: List.of('Trainspotting', '28 Days Later'),
+      tally: Map({
+        'Trainspotting': 1
+      })
+    }));
+  });
+
+  it('adds to existing tally for the voted entry', () => {
+    const state = Map({
+      pair: List.of('Trainspotting', '28 Days Later'),
+      tally: Map({
+        'Trainspotting': 3,
+        '28 Days Later': 2
+      })
+    });
+    const nextState = vote(state, 'Trainspotting');
+    expect(nextState).to.equal(Map({
+      pair: List.of('Trainspotting', '28 Days Later'),
+      tally: Map({
+        'Trainspotting': 4,
+        '28 Days Later': 2
+      })
+    }));
+  });
+
+});
+
+As we see, this also simplifies the test code, which is usually a good sign!
+
+The vote implementation should now just take the vote part of the state, and
+update its tally:
+
+src/core.js
+export function vote(voteState, entry) {
+  return voteState.updateIn(
+    ['tally', entry],
+    0,
+    tally => tally + 1
+  );
+}
+
+Now it becomes the job of our reducer to pick apart the state so that it gives
+only the relevant part to the vote function:
+
+src/reducer.js
+export default function reducer(state = INITIAL_STATE, action) {
+  switch (action.type) {
+  case 'SET_ENTRIES':
+    return setEntries(state, action.entries);
+  case 'NEXT':
+    return next(state);
+  case 'VOTE':
+    return state.update('vote',
+                        voteState => vote(voteState, action.entry));
+  }
+  return state;
+}
+
+This is a small example of the kind of pattern that becomes much more important
+the larger an application gets: The main reducer function only hands parts of
+the state to lower-level reducer functions. We separate the job of finding the
+right location in the state tree from applying the update to that location.
+
+The Redux documentation for reducers goes into these patterns of reducer
+composition in a lot more detail, and also describes some helper functions that
+makes reducer composition easier in many cases.
+
 ** Introducing The Redux Store 
+Now that we have a reducer, we can start looking at how this all plugs into
+Redux itself.
+
+As we just saw, if you had a collection of all the actions that are ever going
+to occur in your application, you could just call reduce. Out pops the final
+state of your app. Of course, you usually don't have a collection of all those
+actions. They will arrive spread out over time, as things happen in the world:
+When users interact with the app, when data is received from networks, or when
+timeouts trigger.
+
+To deal with this reality, we can use a Redux Store. It is an object that, as
+the name implies, stores the state of your application over time.
+
+A Redux Store is initialized with a reducer function, such as the one we have
+just implemented:
+
+Now that we have a reducer, we can start looking at how this all plugs into
+Redux itself.
+
+As we just saw, if you had a collection of all the actions that are ever going
+to occur in your application, you could just call reduce. Out pops the final
+state of your app. Of course, you usually don't have a collection of all those
+actions. They will arrive spread out over time, as things happen in the world:
+When users interact with the app, when data is received from networks, or when
+timeouts trigger.
+
+To deal with this reality, we can use a Redux Store. It is an object that, as
+the name implies, stores the state of your application over time.
+
+A Redux Store is initialized with a reducer function, such as the one we have
+just implemented:
+
+import {createStore} from 'redux';
+
+const store = createStore(reducer);
+
+What you can then do is dispatch actions to that Store. The Store will
+internally use your reducer to apply the actions to the current state, and
+store the resulting, next state:
+
+store.dispatch({type: 'NEXT'});
+
+At any point in time, you can obtain the current state from inside the Store:
+
+store.getState();
+
+We're going to set up and export a Redux Store in a file called store.js. Let's
+test it first. We should be able to make a store, read its initial state,
+dispatch action, and witness the changed state:
+import {createStore} from 'redux';
+
+const store = createStore(reducer);
+
+What you can then do is dispatch actions to that Store. The Store will
+internally use your reducer to apply the actions to the current state, and
+store the resulting, next state:
+
+store.dispatch({type: 'NEXT'});
+
+At any point in time, you can obtain the current state from inside the Store:
+
+store.getState();
+
+We're going to set up and export a Redux Store in a file called store.js. Let's
+test it first. We should be able to make a store, read its initial state,
+dispatch action, and witness the changed state:
+
+test/store_spec.js
+import {Map, fromJS} from 'immutable';
+import {expect} from 'chai';
+
+import makeStore from '../src/store';
+
+describe('store', () => {
+
+  it('is a Redux store configured with the correct reducer', () => {
+    const store = makeStore();
+    expect(store.getState()).to.equal(Map());
+
+    store.dispatch({
+      type: 'SET_ENTRIES',
+      entries: ['Trainspotting', '28 Days Later']
+    });
+    expect(store.getState()).to.equal(fromJS({
+      entries: ['Trainspotting', '28 Days Later']
+    }));
+  });
+
+});
+
+Before we can create the Store, we need to add Redux into the project:
+
+#+BEGIN_SRC sh
+npm install --save redux
+#+END_SRC
+
+#+RESULTS:
+: redux@3.0.4 node_modules/redux
+
+So, the Redux store ties things together into something we'll be able to use as
+the central point of our application: It holds the current state, and over time
+can receive actions that evolve the state from one version to the next, using
+the core application logic we have written and exposed through the reducer.
+
+
 ** Setting Up a Socket.io Server 
 ** Broadcasting State from A Redux Listener 
 ** Receiving Remote Redux Actions 
