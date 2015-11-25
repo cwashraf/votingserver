@@ -1,5 +1,14 @@
 #+SEQ_TODO: TODAY TOMORROW TEST DONE
 * TODAY What You Will Need
+#+BEGIN: clocktable :maxlevel 4 :scope subtree
+#+CAPTION: Clock summary at [2015-11-24 মঙ্গল 21:33]
+| Headline                 | Time   |
+|--------------------------+--------|
+| *Total time*             | *0:22* |
+|--------------------------+--------|
+| TODAY What You Will Need | 0:22   |
+#+END:
+
   CLOCK: [2015-11-24 মঙ্গল 09:52]--[2015-11-24 মঙ্গল 10:02] =>  0:10
   CLOCK: [2015-11-24 মঙ্গল 09:38]--[2015-11-24 মঙ্গল 09:50] =>  0:12
   :PROPERTIES:
@@ -234,6 +243,16 @@ chai.use(chaiImmutable);
 
 ** Getting Comfortable With Immutable				  :IMMUTABLE:
    CLOCK: [2015-11-24 মঙ্গল 11:17]--[2015-11-24 মঙ্গল 12:44] =>  1:27
+#+BEGIN: clocktable :maxlevel 3 :scope subtree
+#+CAPTION: Clock summary at [2015-11-24 মঙ্গল 21:34]
+| Headline                                        | Time   |      |      |
+|-------------------------------------------------+--------+------+------|
+| *Total time*                                    | *2:27* |      |      |
+|-------------------------------------------------+--------+------+------|
+| \emsp Getting Comfortable With Immutable        |        | 2:27 |      |
+| \emsp\emsp Immutable data structures are the... |        |      | 1:00 |
+#+END:
+
    :PROPERTIES:
    :Effort:   1:40
    :END:
@@ -557,6 +576,21 @@ Head:     b23ffbc master helper functions that make it easier to reach into
       result in excessive amounts of copying, which hurts performance. 
 
 ** Writing The Application Logic With Pure Functions 
+#+BEGIN: clocktable :maxlevel 4 :scope subtree
+#+CAPTION: Clock summary at [2015-11-24 মঙ্গল 21:36]
+| Headline                                              | Time   |      |      |      |
+|-------------------------------------------------------+--------+------+------+------|
+| *Total time*                                          | *5:09* |      |      |      |
+|-------------------------------------------------------+--------+------+------+------|
+| \emsp Writing The Application Logic With...           |        | 5:09 |      |      |
+| \emsp\emsp Loading Entries                            |        |      | 1:03 |      |
+| \emsp\emsp\emsp Test Case for Entries and Source Code |        |      |      | 1:03 |
+| \emsp\emsp Starting The Vote Second state             |        |      | 0:30 |      |
+| \emsp\emsp Voting                                     |        |      | 1:12 |      |
+| \emsp\emsp Moving to The Next Pair                    |        |      | 0:50 |      |
+| \emsp\emsp Ending The Vote                            |        |      | 0:33 |      |
+#+END:
+
    CLOCK: [2015-11-24 মঙ্গল 10:02]--[2015-11-24 মঙ্গল 11:03] =>  1:01
    :PROPERTIES:
    :Effort:   0:54
@@ -904,7 +938,7 @@ modified   test/core_spec.js
     function from Immutable. 
 
 *** Moving to The Next Pair 
-    CLOCK: [2015-11-24 মঙ্গল 19:32]
+    CLOCK: [2015-11-24 মঙ্গল 19:32]--[2015-11-24 মঙ্গল 20:22] =>  0:50
     :PROPERTIES:
     :Effort:   0:39
     :END:
@@ -1025,8 +1059,302 @@ modified   test/core_spec.js
 #+end_example
 
 *** Ending The Vote 
+    CLOCK: [2015-11-24 মঙ্গল 20:15]--[2015-11-24 মঙ্গল 20:48] =>  0:33
 
-** Introducing Actions and Reducers 
+    At some point there's just going to be one entry left when a vote ends. At that
+    point we have a winning entry. What we should do is, instead of trying to form
+    a next vote, just set the winner in the state explicitly. The vote is over.
+
+    In the implementation of next we should have a special case for the situation
+    where the entries has a size of 1 after we've processed the current vote:
+Head:     c37c165 master get winner ending...
+tag: c37c165998a38553e195d7b644491c23f683b731
+#+BEGIN_SRC 
+modified   src/core.js
+@@ -15,7 +15,11 @@ function getWinners(vote) {
+ 
+ export function next(state){
+   const entries = state.get('entries')
+-                       .concat(getWinners(state.get('vote')));
++    .concat(getWinners(state.get('vote')));
++  if (entries.size === 1 )
++    return state.remove('vote')
++                .remove('entries')
++                .set('winner', entries.first()); 
+   return state.merge({
+     vote: Map({pair: entries.take(2)}),
+     entries: entries.skip(2)
+modified   test/core_spec.js
+@@ -66,6 +66,22 @@ describe('application logic', () => {
+ 	entries: List.of('127 Hours', 'Trainspotting', '28 Days Later')
+       }));
+     });
++    it('marks winner when just one entry left', () => {
++      const state = Map({
++	vote: Map({
++          pair: List.of('Trainspotting', '28 Days Later'),
++          tally: Map({
++            'Trainspotting': 4,
++            '28 Days Later': 2
++          })
++	}),
++	entries: List()
++      });
++      const nextState = next(state);
++      expect(nextState).to.equal(Map({
++	winner: 'Trainspotting'
++      }));
++    });
+   });
+   
+   describe('vote', () => {
+#+END_SRC
+
+#+BEGIN_SRC sh :results verbatim
+npm run test
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+> mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
+
+
+
+  application logic
+    setEntries
+      ✓ adds the entries to the state
+    next
+      ✓ takes the next two entries under vote
+      ✓ puts winner of current vote back to entries
+      ✓ puts both from tied vote back to entries
+      ✓ marks winner when just one entry left
+    vote
+      ✓ creates a tally for the voted entry
+      ✓ adds to existing tally for the voted entry
+
+  immutability
+    a number
+      ✓ is immutable
+    A List
+      ✓ is immutable
+    a tree
+      ✓ is immatable
+
+
+  10 passing (58ms)
+
+#+end_example
+
+We could have just returned Map({winner: entries.first()}) here. But instead we
+still take the old state as the starting point and explicitly remove 'vote' and
+'entries' keys from it. The reason for this is future-proofing: At some point
+we might have some unrelated data in the state, and it should pass through this
+function unchanged. It is generally a good idea in these state transformation
+functions to always morph the old state into the new one instead of building
+the new state completely from scratch.
+
+Here we have an acceptable version of the core logic of our app, expressed as a
+few functions. We also have unit tests for them, and writing those tests has
+been relatively easy: No setup, no mocks, no stubs. That's the beauty of pure
+functions. We can just call them and inspect the return values.
+
+Note that we haven't even installed Redux yet. We've been able to focus totally
+on the logic of the app itself, without bringing the "framework" in. There's
+something very pleasing about that.
+
+** Introducing Actions and Reducers
+   CLOCK: [2015-11-24 মঙ্গল 20:56]--[2015-11-24 মঙ্গল 21:27] =>  0:31
+   :PROPERTIES:
+   :Effort:   0:30
+   :END:
+ 
+   We have the core functions of our app, but in Redux you don't actually call
+   those functions directly. There is a layer of indirection between the functions
+   and the outside world: Actions.
+
+   An action is a simple data structure that describes a change that should occur
+   in your app state. It's basically a description of a function call packaged
+   into a little object. By convention, every action has a type attribute that
+   describes which operation the action is for. Each action may also carry
+   additional attributes. Here are a few example actions that match the core
+   functions we have just written:
+
+   {type: 'SET_ENTRIES', entries: ['Trainspotting', '28 Days Later']}
+   
+   {type: 'NEXT'}
+
+   {type: 'VOTE', entry: 'Trainspotting'}
+
+   If actions are expressed like this, we also need a way to turn them into the
+   actual core function calls. For example, given the VOTE action, the following
+   call should be made:
+
+   // This action
+   let voteAction = {type: 'VOTE', entry: 'Trainspotting'}
+   // should cause this to happen
+   return vote(state, voteAction.entry);
+
+   What we're going to write is a generic function that takes any kind of action -
+   along with the current state - and invokes the core function that matches the
+   action. This function is called a reducer:
+#+BEGIN_SRC js 
+export default function reducer(state, action) {
+// Figure out which function to call and call it
+}
+#+END_SRC
+
+We should test that the reducer can indeed handle each of our three actions:
+
+#+BEGIN_SRC js 
+import {Map, fromJS} from 'immutable'
+import {expect} from 'chai';
+import reducer from '../src/reducer';
+
+  it('handles SET_ENTRIES', () => {
+    const initialState = Map();
+    const action = { type: 'SET_ENTRIES', entries: ['Trainspotting'] };
+    const nextState = reducer(initialState, action );
+    expect(nextState).to.equal(fromJS({
+      entries: ['Trainspotting']
+    }));
+  });
+  
+  it('handles NEXT', () => {
+    const initialState = fromJS({
+      entries: ['Trainspotting', '28 Days Later']
+    });
+    const action = {type: 'NEXT'};
+    const nextState = reducer(initialState, action);
+
+    expect(nextState).to.equal(fromJS({
+      vote: {
+        pair: ['Trainspotting', '28 Days Later'],
+        tally: {Transformation: 1}
+      },
+      entries: []
+    }));
+  });
+    
+  it('handles VOTE', () => { 
+    const initialState = fromJS({
+      vote: {
+        pair: ['Trainspotting', '28 Days Later']
+      },
+      entries: []
+    });
+    const action = {type: 'VOTE', entry: 'Trainspotting'};
+    const nextState = reducer(initialState, action);
+
+    expect(nextState).to.equal(fromJS({
+      vote: {
+        pair: ['Trainspotting', '28 Days Later'],
+        tally: {Transformation: 1}
+      },
+      entries: []
+    }));
+  });
+});
+#+END_SRC   
+Our reducer should delegate to one of the core functions based on the type of
+the action. It also knows how to unpack the additional arguments of each
+function from the action object:
+
+#+BEGIN_SRC 
+import {setEntries, next, vote} from './core';
+
+export default function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_ENTRIES':
+      return setEntries(state, action.entries);
+    case 'NEXT':
+      return next(state);
+    case 'VOTE':
+      return vote(state, action.entry)
+  }
+  return state;
+}
+#+END_SRC
+
+#+BEGIN_SRC sh
+npm run test
+#+END_SRC
+
+#+RESULTS:
+
+ > voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
+ > mocha --compilers  js:babel-core/register  --require  ./test/test_helper.js  --recursive 
+
+| application  | logic   |         |             |          |         |         |       |       |         |
+| setEntries   |         |         |             |          |         |         |       |       |         |
+|              | ✓       | adds    | the         | entries  | to      | the     | state |       |         |
+| next         |         |         |             |          |         |         |       |       |         |
+|              | ✓       | takes   | the         | next     | two     | entries | under | vote  |         |
+|              | ✓       | puts    | winner      | of       | current | vote    | back  | to    | entries |
+|              | ✓       | puts    | both        | from     | tied    | vote    | back  | to    | entries |
+|              | ✓       | marks   | winner      | when     | just    | one     | entry | left  |         |
+| vote         |         |         |             |          |         |         |       |       |         |
+|              | ✓       | creates | a           | tally    | for     | the     | voted | entry |         |
+|              | ✓       | adds    | to          | existing | tally   | for     | the   | voted | entry   |
+|              |         |         |             |          |         |         |       |       |         |
+| immutability |         |         |             |          |         |         |       |       |         |
+| a            | number  |         |             |          |         |         |       |       |         |
+|              | ✓       | is      | immutable   |          |         |         |       |       |         |
+| A            | List    |         |             |          |         |         |       |       |         |
+|              | ✓       | is      | immutable   |          |         |         |       |       |         |
+| a            | tree    |         |             |          |         |         |       |       |         |
+|              | ✓       | is      | immatable   |          |         |         |       |       |         |
+|              |         |         |             |          |         |         |       |       |         |
+| Reducer      |         |         |             |          |         |         |       |       |         |
+|              | ✓       | handles | SET_ENTRIES |          |         |         |       |       |         |
+|              | ✓       | handles | NEXT        |          |         |         |       |       |         |
+|              | ✓       | handles | VOTE        |          |         |         |       |       |         |
+|              |         |         |             |          |         |         |       |       |         |
+|              |         |         |             |          |         |         |       |       |         |
+| 13           | passing | (98ms)  |             |          |         |         |       |       |         |
+|              |         |         |             |          |         |         |       |       |         |
+
+test/reducer_spec.js
+describe('reducer', () => {
+
+  // ...
+
+  it('has an initial state', () => {
+    const action = {type: 'SET_ENTRIES', entries: ['Trainspotting']};
+    const nextState = reducer(undefined, action);
+    expect(nextState).to.equal(fromJS({
+      entries: ['Trainspotting']
+    }));
+  });
+
+});
+
+Since our application's logic is in core.js, it makes sense to introduce the
+initial state there:
+
+src/core.js
+export const INITIAL_STATE = Map();
+
+In the reducer we'll import it and use it as the default value of the state
+argument:
+
+src/reducer.js
+import {setEntries, next, vote, INITIAL_STATE} from './core';
+
+export default function reducer(state = INITIAL_STATE, action) {
+  switch (action.type) {
+  case 'SET_ENTRIES':
+    return setEntries(state, action.entries);
+  case 'NEXT':
+    return next(state);
+  case 'VOTE':
+    return vote(state, action.entry)
+  }
+  return state;
+}
+
+
 ** A Taste of Reducer Composition 
 ** Introducing The Redux Store 
 ** Setting Up a Socket.io Server 
@@ -1058,28 +1386,6 @@ modified   test/core_spec.js
 ** 4. Restarting The Vote 
 ** 5. Indicating Socket Connection State 
 ** Bonus Challenge: Going Peer to Peer 
-
-
-#+RESULTS:
-:RESULTS:
-
-> voting-server@1.0.0 test /usr/local/src/jstutorials/voting-server
-> ./node_modules/mocha/bin/mocha --compilers js:babel-core/register --require ./test/test_helper.js --recursive
-
-
-
-  application logic
-    setEntries
-      ✓ adds the entries to the state
-
-  a number
-    ✓ is immutable
-
-
-  2 passing (22ms)
-
-:END:
-
 *** Loading Entries 
 *** Starting The Vote 
 *** Voting 
