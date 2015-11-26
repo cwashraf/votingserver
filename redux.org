@@ -1608,7 +1608,33 @@ So, the Redux store ties things together into something we'll be able to use as
 the central point of our application: It holds the current state, and over time
 can receive actions that evolve the state from one version to the next, using
 the core application logic we have written and exposed through the reducer.
+Question: How many variables do you need in a Redux application?
+Answer: One. The one inside the store. 
 
+This notion may sound ludicrous at first - at least if you haven't done much
+functional programming. How can you do anything useful with just one variable? 
+
+But the fact is we don't need any more variables than that. The current state
+tree is the only thing that varies over time in our core application. The rest
+is all constants and immutable values. 
+
+It is quite remarkable just how small the integration surface area between our
+application code and Redux actually is. Because we have a generic reducer
+function, that's the only thing we need to let Redux know about. The rest is
+all in our own, non-framework-specific, highly portable and purely functional
+code!
+
+If we now create the index.js entry point for the application, we can have it
+create and export a store:
+
+index.js
+import makeStore from './src/store';
+
+export const store = makeStore();
+
+Since we also export the store, you could now fire up a Node REPL (with e.g.
+babel-node), require the index.js file and interact with the application using
+the store.
 
 ** Setting Up a Socket.io Server 
 ** Broadcasting State from A Redux Listener 
