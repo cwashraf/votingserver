@@ -1604,6 +1604,16 @@ npm install --save redux
 #+RESULTS:
 : redux@3.0.4 node_modules/redux
 
+Then we can create store.js, where we simply call createStore with our reducer:
+
+src/store.js
+import {createStore} from 'redux';
+import reducer from './reducer';
+
+export default function makeStore() {
+  return createStore(reducer);
+}
+
 So, the Redux store ties things together into something we'll be able to use as
 the central point of our application: It holds the current state, and over time
 can receive actions that evolve the state from one version to the next, using
@@ -1637,8 +1647,205 @@ babel-node), require the index.js file and interact with the application using
 the store.
 
 ** Setting Up a Socket.io Server 
+#+BEGIN_SRC sh 
+npm install --save socket.io
+#+END_SRC
+This creates a Socket.io server, as well as a regular HTTP server bound to port
+8090. The choice of port is arbitrary, but it needs to match the port we'll
+later use to connect from clients.
+
+We can then have index.js call this function, so that a server is started when
+the app starts:
+
+index.js
+import makeStore from './src/store';
+import startServer from './src/server';
+
+export const store = makeStore();
+startServer();
+
+If we now add a start command to our package.json, we'll make startup a bit
+simpler:
+
+package.json
+"scripts": {
+  "start": "babel-node index.js",
+  "test": "mocha --compilers js:babel-core/register  --require ./test/test_helper.js  --recursive",
+  "test:watch": "npm run test -- --watch"
+},
+
+Now we can simply start the server (and create the Redux store) by typing:
+
+npm run start
+
+The babel-node command comes from the babel-cli package that we installed
+earlier. It allows us to easily run Node code with Babel transpiling support
+enabled. It adds some performance overhead so it isn't generally recommended
+for production use, but it works well for the purposes of our tutorial. 
+
 ** Broadcasting State from A Redux Listener 
+
+We have a Socket.io server and we have a Redux state container but they aren't
+yet integrated in any way. The next thing we'll do is change that.
+
+Our server should be able to let clients know about the current state of the
+application (i.e. "what is being voted on?", "What is the current tally of
+votes?", "Is there a winner yet?"). It can do so by emitting a Socket.io event
+to all connected clients whenever something changes.
+
+And how can we know when something has changed? Well, Redux provides something
+for exactly this purpose: You can subscribe to a Redux store. You do that by
+providing a function that the store will call after every action it applies,
+when the state has potentially changed. It is essentially a callback to state
+changes within the store.
+
+We'll do this in startServer, so let's give it the Redux store first:
+
+index.js
+import makeStore from './src/store';
+import {startServer} from './src/server';
+
+export const store = makeStore();
+startServer(store);
+
+What we'll do is subscribe a listener to the store that reads the current
+state, turns it into a plain JavaScript object, and emits it as a state event
+on the Socket.io server. The result will be that a JSON-serialized snapshot of
+the state is sent over all active Socket.io connections.
+
+src/server.js
+import Server from 'socket.io';
+
+export function startServer(store) {
+  const io = new Server().attach(8090);
+
+  store.subscribe(
+    () => io.emit('state', store.getState().toJS())
+  );
+}
+
+We are now publishing the whole state to everyone whenever any changes occur.
+This may end up causing a lot of data transfer. One could think of various ways
+of optimizing this (e.g. just sending the relevant subset, sending diffs
+instead of snapshots...), but this implementation has the benefit of being easy
+to write, so we'll just use it for our example app. 
+
+In addition to sending a state snapshot whenever state changes, it will be
+useful for clients to immediately receive the current state when they connect
+to the application. That lets them sync their client-side state to the latest
+server state right away.
+
+We can listen to 'connection' events on our Socket.io server. We get one each
+time a client connects. In the event listener we can emit the current state
+right away:
+
+src/server.js
+import Server from 'socket.io';
+
+export function startServer(store) {
+  const io = new Server().attach(8090);
+
+  store.subscribe(
+    () => io.emit('state', store.getState().toJS())
+  );
+
+  io.on('connection', (socket) => {
+    socket.emit('state', store.getState().toJS());
+  });
+
+}
+
 ** Receiving Remote Redux Actions 
+In addition to emitting the application state out to clients, we should also be
+able to receive updates from them: Voters will be assigning votes, and the vote
+organizer will be moving the contest forward using the NEXT action.
+
+The solution we'll use for this is actually quite simple. What we can do is
+simply have our clients emit 'action' events that we feed directly into our
+Redux store:
+
+src/server.js
+import Server from 'socket.io';
+
+export function startServer(store) {
+  const io = new Server().attach(8090);
+
+  store.subscribe(
+    () => io.emit('state', store.getState().toJS())
+  );
+
+  io.on('connection', (socket) => {
+    socket.emit('state', store.getState().toJS());
+    socket.on('action', store.dispatch.bind(store));
+  });
+
+}
+
+This is where we start to go beyond "regular Redux", since we are now
+essentially accepting remote actions into our store. However, the Redux
+architecture makes it remarkably easy to do: Since actions are just JavaScript
+objects, and JavaScript objects can easily be sent over the network, we
+immediately got a system with which any number of clients can participate in
+voting. That's no small feat!
+
+There are some obvious security considerations here. We're allowing any
+connected Socket.io client to dispatch any action into the Redux store. 
+
+In most real-world cases, there should be some kind of firewall here, probably
+not dissimilar to the one in the Vert.x Event Bus Bridge. Apps that have an
+authentication mechanism should also plug it in here. 
+
+Our server now operates essentially like this:
+
+1 A client sends an action to the server. 
+2 The server hands the action to the Redux Store. 
+3 The Store calls the reducer and the reducer executes the logic related to the
+  action. 
+4 The Store updates its state based on the return value of the reducer. 
+5 The Store executes the listener function subscribed by the server. 
+6 The server emits a 'state' event. 
+7 All connected clients - including the one that initiated the original action -
+  receive the new state. 
+
+Before we're done with the server, let's have it load up a set of test entries
+for us to play with, so that we have something to look at once we have the
+whole system going. We can add an entries.json file that lists the contest
+entries. For example, the list of Danny Boyle's feature films to date - feel
+free to substitute your favorite subject matter though!
+
+entries.json
+[
+  "Shallow Grave",
+  "Trainspotting",
+  "A Life Less Ordinary",
+  "The Beach",
+  "28 Days Later",
+  "Millions",
+  "Sunshine",
+  "Slumdog Millionaire",
+  "127 Hours",
+  "Trance",
+  "Steve Jobs"
+]
+
+We can just load this in into index.js and then kick off the vote by
+dispatching a NEXT action:
+
+index.js
+import makeStore from './src/store';
+import {startServer} from './src/server';
+
+export const store = makeStore();
+startServer(store);
+
+store.dispatch({
+  type: 'SET_ENTRIES',
+  entries: require('./entries.json')
+});
+store.dispatch({type: 'NEXT'});
+
+And with that, we're ready to switch our focus to the client application.
+
 
 * The Client Application 
 
